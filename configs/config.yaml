@@ -1,0 +1,62 @@
+# Electricity price forecast configuration
+# Override in configs/config.local.yaml for local development
+
+project:
+  name: electricity-price-forecast
+  version: "0.1.0"
+
+data:
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+
+ingestion:
+  pjm:
+    base_url: "https://api.pjm.com/api/v1"
+    day_ahead_lmp_path: "/day_ahead_lmp"
+    timeout_sec: 60
+    max_retries: 3
+    retry_backoff_factor: 2
+  weather:
+    base_url: "https://archive-api.open-meteo.com/v1/archive"
+    forecast_url: "https://api.open-meteo.com/v1/forecast"
+    timeout_sec: 30
+    max_retries: 3
+
+transform:
+  clean:
+    duplicate_strategy: "first"
+    missing_strategy: "interpolate"
+    outlier_method: "iqr"
+    outlier_threshold: 3.0
+  features:
+    lags: [1, 2, 24, 48, 168]
+    rolling_windows: [6, 24, 168]
+    rolling_agg: ["mean", "std", "min", "max"]
+    rolling_quantiles: [0.25, 0.5, 0.75]
+    include_weather: true
+
+model:
+  default: xgb
+  xgb:
+    n_estimators: 500
+    max_depth: 6
+    learning_rate: 0.05
+    early_stopping_rounds: 50
+  sarimax:
+    order: [1, 0, 1]
+    seasonal_order: [1, 0, 1, 24]
+  lstm:
+    hidden_size: 64
+    num_layers: 2
+    dropout: 0.2
+    sequence_length: 168
+    epochs: 100
+    batch_size: 32
+    early_stopping_patience: 10
+
+backtest:
+  train_days: 365
+  val_days: 30
+  test_days: 30
+  step_days: 7
