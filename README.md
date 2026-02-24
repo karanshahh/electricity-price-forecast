@@ -1,4 +1,4 @@
-# ⚡ Electricity Price Forecast
+# Electricity Price Forecast
 
 **Production-grade day-ahead electricity price forecasting** for PJM and CAISO wholesale markets. End-to-end ML pipeline with ingestion, feature engineering, multiple model families, rigorous backtesting, MLOps tooling, and API/dashboard serving.
 
