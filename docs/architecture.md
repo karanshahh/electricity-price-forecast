@@ -2,7 +2,7 @@
 
 ## Overview
 
-Day-ahead electricity price forecasting pipeline for PJM market. Uses LMP (locational marginal price) and optional weather data.
+Day-ahead electricity price forecasting pipeline for PJM and CAISO markets. Uses LMP (locational marginal price) and optional weather data.
 
 ## Pipeline
 
@@ -10,7 +10,7 @@ Day-ahead electricity price forecasting pipeline for PJM market. Uses LMP (locat
 fetch → features → train → backtest → run_api / run_app
 ```
 
-1. **Fetch**: PJM LMP + Open-Meteo weather → `data/raw/*.parquet`
+1. **Fetch**: CAISO LMP (no key) or PJM LMP (API key) + Open-Meteo weather → `data/raw/*.parquet`
 2. **Features**: Clean, transform, build features → `data/processed/modeling_table.parquet`
 3. **Train**: Fit model, log to MLflow → `mlruns/`
 4. **Backtest**: Rolling-origin evaluation → `docs/backtest_report.md`
@@ -21,7 +21,7 @@ fetch → features → train → backtest → run_api / run_app
 ```
 electricity-price-forecast/
 ├── src/electricity_forecast/
-│   ├── ingestion/     # pjm_client, weather_client, schemas
+│   ├── ingestion/     # pjm_client, gridstatus_client (CAISO), weather_client, schemas
 │   ├── transforms/    # clean, features, splits
 │   ├── models/        # baselines, xgb, sarimax, lstm, calibrate
 │   ├── evaluation/    # metrics, backtest, plots
@@ -40,7 +40,7 @@ electricity-price-forecast/
 
 | Component | Purpose |
 |-----------|---------|
-| **ingestion** | PJM Data Miner API (LMP), Open-Meteo (weather) |
+| **ingestion** | CAISO (gridstatus, no key), PJM (API key), Open-Meteo (weather) |
 | **transforms** | Clean (UTC, dedupe, outliers), features (lags, rolling, calendar), splits |
 | **models** | Naive, SeasonalNaive, XGB, SARIMAX, LSTM, QuantileXGB |
 | **evaluation** | MAE, RMSE, MAPE, SMAPE, pinball; rolling backtest |

@@ -2,7 +2,7 @@
 
 ## Summary: Did We Get Results?
 
-**Yes.** The pipeline ran end-to-end and produced forecasts, metrics, and artifacts. The results are from a **Naive Last** baseline model trained on synthetic sample data (~17 days, 399 hourly observations). They are not production-ready but demonstrate that the system works.
+**Yes.** The pipeline ran end-to-end on **real CAISO data** and produced forecasts, metrics, and artifacts. Results are from a **Naive Last** baseline on real California day-ahead LMP (Feb 2026). They demonstrate the system works; the baseline is weak by design.
 
 ---
 
@@ -10,12 +10,12 @@
 
 | Metric | Value |
 |--------|-------|
-| **Date range** | 2023-01-01 to 2023-01-17 (~17 days) |
-| **Observations** | 399 hourly LMP values |
-| **Target (LMP)** | Mean 36.4 $/MWh, Std 11.3, Range [13.3, 57.8] |
+| **Source** | Real CAISO (California) day-ahead LMP |
+| **Date range** | 2026-02-20 to 2026-02-24 (~5 days) |
+| **Observations** | 95 hourly LMP values |
 | **Features** | 37 columns (lags, rolling stats, calendar, volatility) |
 
-The sample data is synthetic (sinusoidal + noise), not real PJM data. Real LMPs are more volatile and have spikes; this sample is smoother.
+Data fetched via `gridstatus` from CAISO OASIS API—no API key required.
 
 ---
 
@@ -25,35 +25,35 @@ The **Naive Last** model predicts the last observed price for every future hour.
 
 ---
 
-## Backtest Results
+## Backtest Results (Real CAISO Data)
 
 | Metric | Value | Interpretation |
 |--------|-------|----------------|
-| **MAE** | 14.00 $/MWh | Average absolute error per hour |
-| **RMSE** | 17.33 $/MWh | Root mean squared error (penalizes large errors) |
-| **MAPE** | 54.67% | Mean absolute percentage error |
-| **SMAPE** | 36.74% | Symmetric MAPE (bounded 0–200%) |
+| **MAE** | 25.57 $/MWh | Average absolute error per hour |
+| **RMSE** | 28.75 $/MWh | Root mean squared error |
+| **MAPE** | 99.49% | Mean absolute percentage error |
+| **SMAPE** | 196.68% | Symmetric MAPE |
 
 ### Interpretation
 
-- **MAE 14 $/MWh** on a mean price of ~36 $/MWh implies errors of ~38% of the mean on average. For a naive baseline, this is expected.
-- **MAPE 54.67%** is high; naive models struggle when prices change.
-- **1 fold** only: with ~17 days of data, the rolling backtest produced a single fold (train on first half, test on second). More data would yield more folds and more stable metrics.
+- **MAE 25.57 $/MWh** — Naive baseline struggles with real price volatility.
+- **MAPE 99.49%** — High; naive model does not adapt to price changes.
+- **1 fold** — Limited by ~5 days of data; more data would yield more folds.
+- **SMAPE > 100%** — Can occur when predictions and actuals diverge significantly.
 
 ---
 
 ## What This Tells Us
 
-1. **Pipeline works** — Fetch → features → train → backtest → artifacts all complete.
-2. **Baseline is weak** — Naive Last is a sanity check, not a useful forecaster.
-3. **Next steps** — Train XGBoost or LSTM on real PJM data (with `brew install libomp` for XGB on macOS) to get meaningful forecasts.
-4. **Data scale** — With real data (often 100+ $/MWh spikes), expect higher MAE/RMSE in absolute terms; MAPE/SMAPE are more comparable across scales.
+1. **Pipeline works** — Fetch (CAISO) → features → train → backtest → artifacts all complete.
+2. **Real data** — CAISO LMP is real market data, not synthetic.
+3. **Baseline is weak** — Naive Last is a sanity check, not a useful forecaster.
+4. **Next steps** — Train XGBoost or LSTM (`brew install libomp` on macOS) for better forecasts.
 
 ---
 
 ## Limitations
 
-- **Sample data** — Synthetic; real PJM LMPs have different dynamics.
-- **Single fold** — Limited backtest; more data needed for robust evaluation.
+- **Short horizon** — 5 days of data; more history improves backtest robustness.
 - **Naive model** — No learning; just repeats the last value.
-- **No XGBoost/LSTM** — Not run due to libomp on this machine; those models should outperform the baseline.
+- **Single fold** — One train/test split; more data enables rolling evaluation.
