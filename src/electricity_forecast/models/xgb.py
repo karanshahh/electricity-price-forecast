@@ -9,7 +9,7 @@ import xgboost as xgb
 from electricity_forecast.config import get_config
 from electricity_forecast.models.base import ForecastModel
 
-EXCLUDE_COLS = {"target", "datetime", "datetime_begin", "timestamp"}
+EXCLUDE_COLS = {"target", "lmp", "datetime", "datetime_begin", "timestamp"}
 
 
 def _feature_cols(df: pd.DataFrame) -> list[str]:
@@ -45,28 +45,31 @@ class XGBForecast(ForecastModel):
         y_train = train_df["target"]
 
         eval_set = None
+        early_stop = self.early_stopping
         if val_df is not None and len(val_df) > 0:
             X_val = val_df[feats].fillna(0)
             y_val = val_df["target"]
             eval_set = [(X_val, y_val)]
+        else:
+            early_stop = None  # No early stopping without validation set
 
         self.model_ = xgb.XGBRegressor(
             n_estimators=self.n_estimators,
             max_depth=self.max_depth,
             learning_rate=self.learning_rate,
-            early_stopping_rounds=self.early_stopping,
+            early_stopping_rounds=early_stop,
             **kwargs,
         )
         self.model_.fit(
-            X_train, y_train,
+            X_train,
+            y_train,
             eval_set=eval_set,
             verbose=False,
         )
         return self
 
     def predict(self, df: pd.DataFrame, **kwargs: Any) -> pd.Series:
-        feats = [c for c in self.feature_names_ if c in df.columns]
-        X = df[feats].fillna(0) if feats else df
+        X = df.reindex(columns=self.feature_names_).fillna(0)
         return pd.Series(self.model_.predict(X), index=df.index)
 
     def feature_importance(self) -> pd.Series:
@@ -78,14 +81,19 @@ class XGBForecast(ForecastModel):
 
     def save(self, path: str | Path) -> None:
         import joblib
-        joblib.dump({
-            "model": self.model_,
-            "feature_names": self.feature_names_,
-        }, path)
+
+        joblib.dump(
+            {
+                "model": self.model_,
+                "feature_names": self.feature_names_,
+            },
+            path,
+        )
 
     @classmethod
     def load(cls, path: str | Path) -> "XGBForecast":
         import joblib
+
         data = joblib.load(path)
         m = cls()
         m.model_ = data["model"]

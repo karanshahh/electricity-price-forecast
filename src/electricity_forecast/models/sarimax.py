@@ -11,7 +11,7 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX, SARIMAXResults
 from electricity_forecast.config import get_config
 from electricity_forecast.models.base import ForecastModel
 
-EXCLUDE_COLS = {"target", "datetime", "datetime_begin", "timestamp"}
+EXCLUDE_COLS = {"target", "lmp", "datetime", "datetime_begin", "timestamp"}
 
 
 def _feature_cols(df: pd.DataFrame) -> list[str]:
@@ -66,10 +66,13 @@ class SARIMAXForecast(ForecastModel):
         return pd.Series(fcast, index=df.index)
 
     def save(self, path: str | Path) -> None:
-        joblib.dump({
-            "model": self.model_,
-            "feature_names": self.feature_names_,
-        }, path)
+        joblib.dump(
+            {
+                "model": self.model_,
+                "feature_names": self.feature_names_,
+            },
+            path,
+        )
 
     @classmethod
     def load(cls, path: str | Path) -> "SARIMAXForecast":

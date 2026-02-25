@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from electricity_forecast.config import get_config
-from electricity_forecast.evaluation.plots import plot_forecast_vs_actual, plot_error_distribution
+from electricity_forecast.evaluation.plots import plot_forecast_vs_actual
 
 st.set_page_config(page_title="Electricity Price Forecast", page_icon="⚡", layout="wide")
 st.title("⚡ Electricity Price Forecast")
@@ -23,7 +23,9 @@ with tab1:
     if data_path.exists():
         df = pd.read_parquet(data_path)
         ts_col = "datetime" if "datetime" in df.columns else df.columns[0]
-        date_range = st.date_input("Date range", value=(df[ts_col].min().date(), df[ts_col].max().date()))
+        date_range = st.date_input(
+            "Date range", value=(df[ts_col].min().date(), df[ts_col].max().date())
+        )
         if isinstance(date_range, tuple) and len(date_range) == 2:
             mask = (df[ts_col].dt.date >= date_range[0]) & (df[ts_col].dt.date <= date_range[1])
             sub = df[mask]
@@ -56,5 +58,6 @@ with tab4:
     manifest = processed_dir / "feature_manifest.json"
     if manifest.exists():
         import json
+
         m = json.loads(manifest.read_text())
         st.json(m)

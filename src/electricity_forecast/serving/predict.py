@@ -14,7 +14,7 @@ from electricity_forecast.transforms.features import build_features
 class PredictRequest(BaseModel):
     """Request schema for /predict."""
 
-    timestamps: list[str] = Field(..., description="ISO8601 timestamps for forecast")
+    timestamps: list[str] = Field(..., min_length=1, description="ISO8601 timestamps for forecast")
     temperature_2m: list[float] | None = Field(None, description="Optional hourly temp")
     latitude: float | None = Field(None, description="Lat for weather")
     longitude: float | None = Field(None, description="Lon for weather")
@@ -50,14 +50,18 @@ class Predictor:
         if not request.timestamps:
             return PredictResponse(forecasts=[])
 
-        df = pd.DataFrame({
-            "datetime": pd.to_datetime(request.timestamps, utc=True),
-            "target": 0.0,  # placeholder for feature building
-        })
-        df = build_features(df, target_col="target", ts_col="datetime", weather_df=None)
+        df = pd.DataFrame(
+            {
+                "datetime": pd.to_datetime(request.timestamps, utc=True),
+                "lmp": 0.0,  # placeholder for feature building (model expects lmp)
+            }
+        )
+        df = build_features(df, target_col="lmp", ts_col="datetime", weather_df=None)
         pred = self.model.predict(df)
         if isinstance(pred, pd.DataFrame):
-            forecasts = pred["point"].tolist() if "point" in pred.columns else pred.iloc[:, 0].tolist()
+            forecasts = (
+                pred["point"].tolist() if "point" in pred.columns else pred.iloc[:, 0].tolist()
+            )
             lower = pred.get("q10", pred.get("q1", None))
             upper = pred.get("q90", pred.get("q9", None))
             lower = lower.tolist() if lower is not None else None

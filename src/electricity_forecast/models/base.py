@@ -11,7 +11,9 @@ class ForecastModel(ABC):
     """Common interface for all forecast models."""
 
     @abstractmethod
-    def fit(self, train_df: pd.DataFrame, val_df: pd.DataFrame | None = None, **kwargs: Any) -> "ForecastModel":
+    def fit(
+        self, train_df: pd.DataFrame, val_df: pd.DataFrame | None = None, **kwargs: Any
+    ) -> "ForecastModel":
         """Fit on training data. Optional validation set for early stopping."""
         ...
 

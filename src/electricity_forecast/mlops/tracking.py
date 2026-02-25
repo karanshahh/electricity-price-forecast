@@ -40,6 +40,7 @@ def log_run(
                 mlflow.log_artifact(str(p))
         if model is not None and hasattr(model, "save"):
             import tempfile
+
             with tempfile.NamedTemporaryFile(suffix=".joblib", delete=False) as f:
                 tmp = f.name
             try:

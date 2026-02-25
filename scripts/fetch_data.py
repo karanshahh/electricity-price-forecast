@@ -10,7 +10,6 @@ import pandas as pd
 from electricity_forecast.config import get_config
 from electricity_forecast.ingestion.pjm_client import PJMClient
 from electricity_forecast.ingestion.weather_client import WeatherClient
-from electricity_forecast import __version__
 
 
 def _parse_args() -> argparse.Namespace:
@@ -64,9 +63,11 @@ def main() -> None:
         try:
             if args.iso == "caiso":
                 from electricity_forecast.ingestion.gridstatus_client import fetch_caiso_lmp
+
                 df_lmp = fetch_caiso_lmp(start, end)
             else:
                 import os
+
                 if os.environ.get("PJM_API_KEY"):
                     client = PJMClient()
                     df_lmp = client.fetch_day_ahead_lmp(start, end, args.node)
@@ -74,7 +75,9 @@ def main() -> None:
                     raise ValueError("PJM requires PJM_API_KEY. Use --iso caiso for no-key data.")
         except (ValueError, ImportError) as e:
             print(f"LMP fetch skipped: {e}")
-            print("Use --iso caiso for CAISO (no key), or set PJM_API_KEY for PJM, or --weather-only")
+            print(
+                "Use --iso caiso for CAISO (no key), or set PJM_API_KEY for PJM, or --weather-only"
+            )
         if df_lmp is not None and not df_lmp.empty:
             out = raw_dir / f"lmp_{args.iso}_{start.date()}_{end.date()}.parquet"
             df_lmp.to_parquet(out, index=False)

@@ -1,7 +1,6 @@
 """Open-Meteo API client for hourly weather data."""
 
 import time
-from pathlib import Path
 
 import pandas as pd
 import requests
@@ -35,7 +34,7 @@ def _retry_request(
         except requests.RequestException as e:
             last_exc = e
             if attempt < max_retries - 1:
-                time.sleep(backoff_factor ** attempt)
+                time.sleep(backoff_factor**attempt)
     raise last_exc  # type: ignore
 
 
@@ -90,9 +89,7 @@ class WeatherClient:
             "timezone": "UTC",
         }
         session = requests.Session()
-        resp = _retry_request(
-            session, self.base_url, req_params, self.max_retries, 2, self.timeout
-        )
+        resp = _retry_request(session, self.base_url, req_params, self.max_retries, 2, self.timeout)
         data = resp.json()
         if "hourly" not in data:
             return pd.DataFrame()

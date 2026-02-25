@@ -50,6 +50,27 @@ def smape(
     return float(np.mean(num / denom) * 100)
 
 
+def directional_accuracy(
+    y_true: pd.Series | np.ndarray,
+    y_pred: pd.Series | np.ndarray,
+    y_prev: pd.Series | np.ndarray | None = None,
+) -> float:
+    """% of correct direction: sign(pred - prev) == sign(actual - prev)."""
+    y_t = np.asarray(y_true).ravel()
+    y_p = np.asarray(y_pred).ravel()
+    n = min(len(y_t), len(y_p))
+    y_t, y_p = y_t[:n], y_p[:n]
+    if y_prev is not None:
+        y_prev = np.asarray(y_prev).ravel()[:n]
+    else:
+        y_prev = np.roll(y_t, 1)
+        y_prev[0] = y_t[0]
+    dir_pred = np.sign(y_p - y_prev)
+    dir_actual = np.sign(y_t - y_prev)
+    mask = (dir_pred != 0) & (dir_actual != 0)
+    return float(np.mean(dir_pred[mask] == dir_actual[mask]) * 100) if mask.any() else float("nan")
+
+
 def pinball_loss(
     y_true: pd.Series | np.ndarray,
     y_pred: pd.Series | np.ndarray,

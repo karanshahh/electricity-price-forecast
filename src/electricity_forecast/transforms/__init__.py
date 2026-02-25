@@ -2,6 +2,6 @@
 
 from electricity_forecast.transforms.clean import clean_lmp
 from electricity_forecast.transforms.features import build_features
-from electricity_forecast.transforms.splits import time_split, rolling_folds
+from electricity_forecast.transforms.splits import rolling_folds, time_split
 
 __all__ = ["clean_lmp", "build_features", "time_split", "rolling_folds"]

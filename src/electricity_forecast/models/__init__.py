@@ -16,23 +16,32 @@ def get_model_class(name: str) -> type:
         return _MODEL_REGISTRY[name]
     if name == "xgb":
         from electricity_forecast.models.xgb import XGBForecast
+
         return XGBForecast
     if name == "sarimax":
         from electricity_forecast.models.sarimax import SARIMAXForecast
+
         return SARIMAXForecast
     if name == "lstm":
         from electricity_forecast.models.lstm import LSTMForecast
+
         return LSTMForecast
     raise ValueError(f"Unknown model: {name}")
 
 
 def __getattr__(name: str):
     """Lazy attr access for XGBForecast, etc."""
-    _map = {"XGBForecast": "xgb", "SARIMAXForecast": "sarimax", "LSTMForecast": "lstm", "QuantileXGB": "calibrate"}
+    _map = {
+        "XGBForecast": "xgb",
+        "SARIMAXForecast": "sarimax",
+        "LSTMForecast": "lstm",
+        "QuantileXGB": "calibrate",
+    }
     if name in _map:
         key = _map[name]
         if key == "calibrate":
             from electricity_forecast.models.calibrate import QuantileXGB
+
             return QuantileXGB
         return get_model_class(key)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

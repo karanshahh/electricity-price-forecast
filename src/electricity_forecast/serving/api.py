@@ -1,10 +1,9 @@
 """FastAPI app with /health and /predict endpoints."""
 
-from typing import Any
 
 from fastapi import FastAPI, HTTPException
 
-from electricity_forecast.serving.predict import load_predictor, PredictRequest, PredictResponse
+from electricity_forecast.serving.predict import PredictRequest, PredictResponse, load_predictor
 
 app = FastAPI(
     title="Electricity Price Forecast API",
@@ -38,4 +37,4 @@ def predict(request: PredictRequest) -> PredictResponse:
         pred = _get_predictor()
         return pred.predict(request)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

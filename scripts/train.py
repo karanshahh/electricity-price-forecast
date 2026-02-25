@@ -7,18 +7,22 @@ from pathlib import Path
 import pandas as pd
 
 from electricity_forecast.config import get_config
-from electricity_forecast.mlops.tracking import setup_mlflow, log_run
+from electricity_forecast.evaluation import run_rolling_backtest
+from electricity_forecast.evaluation.metrics import mae, mape, rmse, smape
+from electricity_forecast.mlops.tracking import log_run, setup_mlflow
 from electricity_forecast.models import get_model_class
 from electricity_forecast.transforms.splits import time_split
-from electricity_forecast.evaluation.metrics import mae, rmse, mape, smape
-from electricity_forecast.evaluation import run_rolling_backtest
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train forecast model")
-    parser.add_argument("--model", type=str, default="xgb", choices=["xgb", "naive", "seasonal", "lstm"])
+    parser.add_argument(
+        "--model", type=str, default="xgb", choices=["xgb", "naive", "seasonal", "lstm"]
+    )
     parser.add_argument("--data", type=str, default=None)
-    parser.add_argument("--out", type=str, default="data/processed/model.pt", help="Save model path")
+    parser.add_argument(
+        "--out", type=str, default="data/processed/model.pt", help="Save model path"
+    )
     return parser.parse_args()
 
 

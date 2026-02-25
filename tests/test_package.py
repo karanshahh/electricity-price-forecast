@@ -1,6 +1,5 @@
 """Basic package tests."""
 
-import pytest
 
 from electricity_forecast import __version__
 

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from electricity_forecast.config import get_config
-from electricity_forecast.transforms import clean_lmp, build_features
+from electricity_forecast.transforms import build_features, clean_lmp
 
 
 def main() -> None:

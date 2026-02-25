@@ -24,9 +24,7 @@ def run_drift_monitor(
     summary = {"feature_drift": feature_drift}
 
     if ref_predictions is not None and cur_predictions is not None:
-        pred_drift = compute_prediction_drift(
-            ref_predictions.values, cur_predictions.values
-        )
+        pred_drift = compute_prediction_drift(ref_predictions.values, cur_predictions.values)
         summary["prediction_drift"] = pred_drift
 
     if output_path is None:

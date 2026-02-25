@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from electricity_forecast.config import get_config
-from electricity_forecast.transforms import clean_lmp, build_features
+from electricity_forecast.transforms import build_features, clean_lmp
 
 
 def _parse_args() -> argparse.Namespace:
@@ -23,8 +23,10 @@ def _find_raw_files(raw_dir: Path) -> tuple[Path | None, Path | None]:
     """Find latest LMP and weather parquet in raw dir."""
     lmp = list(raw_dir.glob("pjm_lmp_*.parquet")) or list(raw_dir.glob("lmp_*.parquet"))
     weather = list(raw_dir.glob("weather_*.parquet"))
-    return (max(lmp, key=lambda p: p.stat().st_mtime) if lmp else None,
-            max(weather, key=lambda p: p.stat().st_mtime) if weather else None)
+    return (
+        max(lmp, key=lambda p: p.stat().st_mtime) if lmp else None,
+        max(weather, key=lambda p: p.stat().st_mtime) if weather else None,
+    )
 
 
 def main() -> None:
@@ -49,8 +51,12 @@ def main() -> None:
         return
 
     df = pd.read_parquet(lmp_path)
-    ts_col = next((c for c in df.columns if "datetime" in c.lower() or "time" in c.lower()), df.columns[0])
-    val_col = next((c for c in df.columns if "lmp" in c.lower() or "price" in c.lower()), df.columns[-1])
+    ts_col = next(
+        (c for c in df.columns if "datetime" in c.lower() or "time" in c.lower()), df.columns[0]
+    )
+    val_col = next(
+        (c for c in df.columns if "lmp" in c.lower() or "price" in c.lower()), df.columns[-1]
+    )
     df = clean_lmp(df, ts_col=ts_col, value_col=val_col)
 
     weather_df = None

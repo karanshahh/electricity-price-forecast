@@ -1,14 +1,10 @@
 """Data drift: PSI and KS test for numeric features."""
 
-import json
-from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 from scipy import stats
-
-from electricity_forecast.config import get_config
 
 
 def psi(expected: np.ndarray, actual: np.ndarray, bins: int = 10) -> float:
@@ -37,7 +33,8 @@ def compute_feature_drift(
 ) -> dict[str, Any]:
     """Compute PSI and KS for numeric features."""
     feature_cols = feature_cols or [
-        c for c in reference.columns
+        c
+        for c in reference.columns
         if reference[c].dtype in ("float64", "int64") and c not in ("target",)
     ]
     results = {}

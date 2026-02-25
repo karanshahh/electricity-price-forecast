@@ -2,7 +2,6 @@
 
 from typing import Literal
 
-import numpy as np
 import pandas as pd
 
 from electricity_forecast.config import get_config
@@ -26,7 +25,11 @@ def clean_lmp(
     dup = duplicate_strategy or clean_cfg.get("duplicate_strategy", "first")
     miss = missing_strategy or clean_cfg.get("missing_strategy", "interpolate")
     out_m = outlier_method or clean_cfg.get("outlier_method", "iqr")
-    out_t = outlier_threshold if outlier_threshold is not None else clean_cfg.get("outlier_threshold", 3.0)
+    out_t = (
+        outlier_threshold
+        if outlier_threshold is not None
+        else clean_cfg.get("outlier_threshold", 3.0)
+    )
 
     df = df.copy()
     ts_col = ts_col or _find_col(df, ["datetime_begin", "datetime", "timestamp", "time"])
@@ -53,9 +56,7 @@ def _find_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
     return df.columns[0] if len(df.columns) > 0 else None
 
 
-def _dedupe(
-    df: pd.DataFrame, ts_col: str | int, value_col: str, strategy: str
-) -> pd.DataFrame:
+def _dedupe(df: pd.DataFrame, ts_col: str | int, value_col: str, strategy: str) -> pd.DataFrame:
     if ts_col is None or strategy == "none":
         return df
     duped = df.duplicated(subset=[ts_col], keep=False)

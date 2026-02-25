@@ -38,6 +38,14 @@
 | price_change_1, price_change_24 | float | 1h and 24h diff |
 | volatility_24 | float | 24h rolling std |
 
+## Baselines (for comparison)
+
+| Baseline | Description | Typical MAE |
+|----------|-------------|-------------|
+| lag_1 | Naive last (predict = previous hour) | ~2.76 $/MWh |
+| lag_24 | Seasonal (same hour yesterday) | ~5.53 $/MWh |
+| lag_168 | Weekly (same hour last week) | ~8.75 $/MWh |
+
 ## Units
 
 - Prices: $/MWh (USD per megawatt-hour)

@@ -1,13 +1,10 @@
 """Plots: actual vs forecast, error distribution, calibration."""
 
-from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 
 def plot_forecast_vs_actual(
@@ -26,8 +23,8 @@ def plot_forecast_vs_actual(
     else:
         ts = pd.RangeIndex(n)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=ts, y=y_t, name="Actual", line=dict(color="blue")))
-    fig.add_trace(go.Scatter(x=ts, y=y_p, name="Forecast", line=dict(color="orange", dash="dash")))
+    fig.add_trace(go.Scatter(x=ts, y=y_t, name="Actual", line={"color": "blue"}))
+    fig.add_trace(go.Scatter(x=ts, y=y_p, name="Forecast", line={"color": "orange", "dash": "dash"}))
     fig.update_layout(title=title, xaxis_title="Time", yaxis_title="Price")
     return fig
 
@@ -61,11 +58,15 @@ def plot_calibration(
     n = min(len(y_t), len(lo), len(hi))
     covered = np.sum((y_t[:n] >= lo[:n]) & (y_t[:n] <= hi[:n])) / n * 100
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=np.arange(n), y=y_t[:n], name="Actual", line=dict(color="blue")))
-    fig.add_trace(go.Scatter(x=np.arange(n), y=lo[:n], name="Lower", line=dict(color="gray", dash="dot")))
-    fig.add_trace(go.Scatter(x=np.arange(n), y=hi[:n], name="Upper", line=dict(color="gray", dash="dot")))
+    fig.add_trace(go.Scatter(x=np.arange(n), y=y_t[:n], name="Actual", line={"color": "blue"}))
+    fig.add_trace(
+        go.Scatter(x=np.arange(n), y=lo[:n], name="Lower", line={"color": "gray", "dash": "dot"})
+    )
+    fig.add_trace(
+        go.Scatter(x=np.arange(n), y=hi[:n], name="Upper", line={"color": "gray", "dash": "dot"})
+    )
     fig.update_layout(
-        title=f"{title} (Coverage: {covered:.1f}%, Nominal: {nominal*100:.0f}%)",
+        title=f"{title} (Coverage: {covered:.1f}%, Nominal: {nominal * 100:.0f}%)",
         xaxis_title="Index",
         yaxis_title="Price",
     )

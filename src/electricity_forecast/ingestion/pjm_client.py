@@ -1,12 +1,10 @@
 """PJM Data Miner API client for day-ahead LMP time series."""
 
 import time
-from pathlib import Path
 
 import pandas as pd
 import requests
 from rich.console import Console
-from rich.logging import RichHandler
 
 from electricity_forecast.config import get_config
 from electricity_forecast.ingestion.schemas import PJMFetchParams
@@ -34,7 +32,7 @@ def _retry_request(
         except requests.RequestException as e:
             last_exc = e
             if attempt < max_retries - 1:
-                wait = backoff_factor ** attempt
+                wait = backoff_factor**attempt
                 time.sleep(wait)
     raise last_exc  # type: ignore
 
@@ -112,7 +110,9 @@ class PJMClient:
             df = pd.DataFrame(data) if data else pd.DataFrame()
         if df.empty:
             return df
-        ts_col = next((c for c in df.columns if "datetime" in c.lower() or "time" in c.lower()), None)
+        ts_col = next(
+            (c for c in df.columns if "datetime" in c.lower() or "time" in c.lower()), None
+        )
         if ts_col:
             df[ts_col] = pd.to_datetime(df[ts_col], utc=True)
         return df

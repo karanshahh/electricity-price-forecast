@@ -1,9 +1,10 @@
 """Pytest fixtures and sample data for CI."""
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
-from pathlib import Path
 
 
 @pytest.fixture
@@ -22,11 +23,13 @@ def sample_weather_df() -> pd.DataFrame:
     n = 500
     rng = np.random.default_rng(43)
     ts = pd.date_range("2023-01-01", periods=n, freq="h", tz="UTC")
-    return pd.DataFrame({
-        "datetime": ts,
-        "temperature_2m": 15 + 10 * np.sin(np.arange(n) / 24) + rng.standard_normal(n) * 2,
-        "cloud_cover": rng.integers(0, 100, n),
-    }).set_index("datetime")
+    return pd.DataFrame(
+        {
+            "datetime": ts,
+            "temperature_2m": 15 + 10 * np.sin(np.arange(n) / 24) + rng.standard_normal(n) * 2,
+            "cloud_cover": rng.integers(0, 100, n),
+        }
+    ).set_index("datetime")
 
 
 @pytest.fixture

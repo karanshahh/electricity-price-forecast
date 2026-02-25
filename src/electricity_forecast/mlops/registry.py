@@ -1,10 +1,8 @@
 """Simple registry wrapper to register best model and load production model."""
 
-from pathlib import Path
 from typing import Any
 
 import mlflow
-
 
 PRODUCTION_ALIAS = "production"
 

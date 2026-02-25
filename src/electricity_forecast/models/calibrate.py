@@ -3,14 +3,13 @@
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import xgboost as xgb
 
 from electricity_forecast.models.base import ForecastModel
-from electricity_forecast.models.xgb import XGBForecast, _feature_cols
+from electricity_forecast.models.xgb import _feature_cols
 
-EXCLUDE_COLS = {"target", "datetime", "datetime_begin", "timestamp"}
+EXCLUDE_COLS = {"target", "lmp", "datetime", "datetime_begin", "timestamp"}
 
 
 class QuantileXGB(ForecastModel):
@@ -48,21 +47,26 @@ class QuantileXGB(ForecastModel):
         X = df[feats].fillna(0) if feats else df
         out = pd.DataFrame(index=df.index)
         for q, m in self.models_.items():
-            out[f"q{int(q*100)}"] = m.predict(X)
+            out[f"q{int(q * 100)}"] = m.predict(X)
         out["point"] = out[[c for c in out.columns if c.startswith("q")]].mean(axis=1)
         return out
 
     def save(self, path: str | Path) -> None:
         import joblib
-        joblib.dump({
-            "models": self.models_,
-            "feature_names": self.feature_names_,
-            "quantiles": self.quantiles,
-        }, path)
+
+        joblib.dump(
+            {
+                "models": self.models_,
+                "feature_names": self.feature_names_,
+                "quantiles": self.quantiles,
+            },
+            path,
+        )
 
     @classmethod
     def load(cls, path: str | Path) -> "QuantileXGB":
         import joblib
+
         data = joblib.load(path)
         m = cls(quantiles=tuple(data["quantiles"]))
         m.models_ = data["models"]

@@ -1,6 +1,5 @@
 """Time-series feature engineering: lags, rolling, calendar, weather."""
 
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -8,8 +7,17 @@ import pandas as pd
 from electricity_forecast.config import get_config
 
 US_HOLIDAYS = {
-    "01-01", "07-04", "12-25", "11-28", "11-29",
-    "12-24", "12-31", "01-02", "09-01", "11-11", "12-26",
+    "01-01",
+    "07-04",
+    "12-25",
+    "11-28",
+    "11-29",
+    "12-24",
+    "12-31",
+    "01-02",
+    "09-01",
+    "11-11",
+    "12-26",
 }
 
 
@@ -34,7 +42,9 @@ def build_features(
     rolling_windows = rolling_windows or feat_cfg.get("rolling_windows", [6, 24, 168])
     rolling_agg = rolling_agg or feat_cfg.get("rolling_agg", ["mean", "std", "min", "max"])
     rolling_quantiles = rolling_quantiles or feat_cfg.get("rolling_quantiles", [0.25, 0.5, 0.75])
-    include_weather = include_weather if weather_df is not None else feat_cfg.get("include_weather", False)
+    include_weather = (
+        include_weather if weather_df is not None else feat_cfg.get("include_weather", False)
+    )
 
     out = df.copy()
     if ts_col not in out.columns and isinstance(out.index, pd.DatetimeIndex):
@@ -57,9 +67,7 @@ def build_features(
             if fn:
                 out[f"roll_{w}_{agg}"] = shifted.rolling(w, min_periods=1).apply(fn, raw=True)
         for q in rolling_quantiles:
-            out[f"roll_{w}_q{int(q*100)}"] = (
-                price.shift(1).rolling(w, min_periods=1).quantile(q)
-            )
+            out[f"roll_{w}_q{int(q * 100)}"] = price.shift(1).rolling(w, min_periods=1).quantile(q)
 
     out["hour"] = out[ts_col].dt.hour
     out["dow"] = out[ts_col].dt.dayofweek
@@ -77,9 +85,7 @@ def build_features(
     return out.dropna(subset=[f"lag_{lags[0]}"]).reset_index(drop=True)
 
 
-def _merge_weather(
-    df: pd.DataFrame, weather_df: pd.DataFrame, ts_col: str
-) -> pd.DataFrame:
+def _merge_weather(df: pd.DataFrame, weather_df: pd.DataFrame, ts_col: str) -> pd.DataFrame:
     """Align weather by hour; no future info."""
     w = weather_df.copy()
     if isinstance(w.index, pd.DatetimeIndex):
@@ -90,7 +96,13 @@ def _merge_weather(
     w["wt"] = w["wt"].dt.tz_localize(None) if w["wt"].dt.tz else w["wt"]
     df["_merge_key"] = pd.to_datetime(df[ts_col], utc=True).dt.tz_localize(None)
     w["_merge_key"] = w["wt"]
-    merge_cols = [c for c in w.columns if c not in ("wt", "_merge_key") and w[c].dtype in (np.floating, np.int64)]
-    out = df.merge(w[["_merge_key"] + merge_cols], on="_merge_key", how="left", suffixes=("", "_weather"))
+    merge_cols = [
+        c
+        for c in w.columns
+        if c not in ("wt", "_merge_key") and w[c].dtype in (np.floating, np.int64)
+    ]
+    out = df.merge(
+        w[["_merge_key"] + merge_cols], on="_merge_key", how="left", suffixes=("", "_weather")
+    )
     out = out.drop(columns=["_merge_key"], errors="ignore")
     return out

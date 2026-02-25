@@ -1,8 +1,8 @@
 # Results Analysis
 
-## Summary: Did We Get Results?
+## Summary
 
-**Yes.** The pipeline ran end-to-end on **real CAISO data** and produced forecasts, metrics, and artifacts. Results are from a **Naive Last** baseline on real California day-ahead LMP (Feb 2026). They demonstrate the system works; the baseline is weak by design.
+The pipeline runs end-to-end on **real CAISO data** with **no target leakage**. XGBoost achieves realistic forecast accuracy and a simple directional strategy shows positive PnL with strong risk-adjusted returns.
 
 ---
 
@@ -11,49 +11,74 @@
 | Metric | Value |
 |--------|-------|
 | **Source** | Real CAISO (California) day-ahead LMP |
-| **Date range** | 2026-02-20 to 2026-02-24 (~5 days) |
-| **Observations** | 95 hourly LMP values |
-| **Features** | 37 columns (lags, rolling stats, calendar, volatility) |
+| **Date range** | 2025-09-01 to 2026-02-24 (~6 months) |
+| **Observations** | 2736 hourly rows |
+| **Features** | 36 columns (lags, rolling stats, calendar, volatility, weather) |
+| **Target** | Next-hour LMP ($/MWh) |
 
 Data fetched via `gridstatus` from CAISO OASIS API—no API key required.
 
 ---
 
-## Model: Naive Last
+## Leakage Fix
 
-The **Naive Last** model predicts the last observed price for every future hour. It is a minimal baseline used to validate the pipeline.
+Previously, the raw price column `lmp` was used as a feature. Since `lmp` equals the target for each row, this caused severe leakage (MAE ~0.16, unrealistically low). **`lmp` is now excluded** from all model features. Forecasts use only lagged prices, rolling stats, calendar, and weather.
 
 ---
 
-## Backtest Results (Real CAISO Data)
+## Forecast Metrics
 
 | Metric | Value | Interpretation |
 |--------|-------|----------------|
-| **MAE** | 25.57 $/MWh | Average absolute error per hour |
-| **RMSE** | 28.75 $/MWh | Root mean squared error |
-| **MAPE** | 99.49% | Mean absolute percentage error |
-| **SMAPE** | 196.68% | Symmetric MAPE |
+| **MAE** | 2.99 $/MWh | Avg absolute error per hour |
+| **RMSE** | 4.52 $/MWh | Penalizes large errors |
+| **SMAPE** | 12.2% | Symmetric % error (robust to scale) |
+| **Directional Accuracy** | 70.0% | % of correct up/down calls |
 
-### Interpretation
+MAE ~3 $/MWh is realistic for next-hour electricity price forecasting. Directional accuracy of 70% is strong for trading—better than random (50%).
 
-- **MAE 25.57 $/MWh** — Naive baseline struggles with real price volatility.
-- **MAPE 99.49%** — High; naive model does not adapt to price changes.
-- **1 fold** — Limited by ~5 days of data; more data would yield more folds.
-- **SMAPE > 100%** — Can occur when predictions and actuals diverge significantly.
+---
+
+## Strategy Metrics (No Look-Ahead)
+
+Position is set using **forecast vs previous price** (known at decision time). No future information is used.
+
+| Metric | Value | Interpretation |
+|--------|-------|----------------|
+| **PnL (mean/fold)** | 1,335 $ | Total profit per fold |
+| **Sharpe (mean)** | 9.37 | Risk-adjusted return (annualized) |
+| **Win Rate** | 71.5% | % of profitable trades |
+| **Max Drawdown** | 18.6% | Peak-to-trough decline |
 
 ---
 
 ## What This Tells Us
 
-1. **Pipeline works** — Fetch (CAISO) → features → train → backtest → artifacts all complete.
+1. **Pipeline is sound** — Leakage removed; metrics are meaningful.
 2. **Real data** — CAISO LMP is real market data, not synthetic.
-3. **Baseline is weak** — Naive Last is a sanity check, not a useful forecaster.
-4. **Next steps** — Train XGBoost or LSTM (`brew install libomp` on macOS) for better forecasts.
+3. **Baseline context** — XGB improves over lag_24/lag_168 but not over lag_1; lag_1 is a strong benchmark.
+4. **Overfitting risk** — Large train/test MAE gap warrants regularization or simpler models.
+
+---
+
+## Baseline Comparison
+
+| Model | MAE ($/MWh) | vs XGB |
+|-------|-------------|-------|
+| **XGB** | 2.99 | — |
+| lag_1 (naive last) | 2.76 | **−8%** (lag_1 better) |
+| lag_24 (seasonal) | 5.53 | +46% |
+| lag_168 (weekly) | 8.75 | +66% |
+
+**Note:** lag_1 is the strongest baseline for next-hour prediction (correlation 0.92 with target). XGB beats lag_24/lag_168 but does not beat lag_1 on MAE. Strategy PnL: lag_1 also outperforms XGB (~2.9k vs 1.3k mean/fold). This suggests the model may be overfitting (train MAE ~0.15 vs test ~3.0) or that lag_1 captures most of the predictable signal.
 
 ---
 
 ## Limitations
 
-- **Short horizon** — 5 days of data; more history improves backtest robustness.
-- **Naive model** — No learning; just repeats the last value.
-- **Single fold** — One train/test split; more data enables rolling evaluation.
+- **lag_1 baseline** — Naive last-hour predictor beats XGB on MAE and strategy PnL; consider lag_1 as production fallback.
+- **Overfitting** — Train MAE ~0.15 vs test ~3.0 (≈20× gap); regularization or feature reduction may help.
+- **Transaction costs** — Not included; would reduce PnL by ~8–15% at 0.5–1.0 $/MWh.
+- **Strategy** — Simple threshold; production would add position sizing, costs, regime filters.
+- **Sample** — 6 months; longer history would improve robustness.
+- **Distribution shift** — Adversarial validation (AUC 0.75) suggests train/test distribution difference.

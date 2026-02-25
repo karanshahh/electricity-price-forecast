@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 from electricity_forecast.config import get_config
 from electricity_forecast.models.base import ForecastModel
 
-EXCLUDE_COLS = {"target", "datetime", "datetime_begin", "timestamp"}
+EXCLUDE_COLS = {"target", "lmp", "datetime", "datetime_begin", "timestamp"}
 
 
 def _feature_cols(df: pd.DataFrame) -> list[str]:
@@ -98,12 +98,14 @@ class LSTMForecast(ForecastModel):
         ds = SeqDataset(train_df, self.seq_len, feats)
         loader = torch.utils.data.DataLoader(ds, batch_size=self.batch_size, shuffle=True)
 
-        self.model_ = LSTMModel(n_feat, self.hidden_size, self.num_layers, self.dropout).to(self.device_)
+        self.model_ = LSTMModel(n_feat, self.hidden_size, self.num_layers, self.dropout).to(
+            self.device_
+        )
         opt = torch.optim.Adam(self.model_.parameters())
         best_loss = float("inf")
         wait = 0
 
-        for ep in range(self.epochs):
+        for _ep in range(self.epochs):
             self.model_.train()
             loss_sum = 0.0
             for x, y in loader:
@@ -114,11 +116,13 @@ class LSTMForecast(ForecastModel):
                 loss.backward()
                 opt.step()
                 loss_sum += loss.item()
-            train_loss = loss_sum / len(loader)
+            _ = loss_sum / len(loader)  # train_loss for potential logging
 
             if val_df is not None and len(val_df) >= self.seq_len:
                 val_pred = self._predict_internal(val_df, feats)
-                val_loss = float(np.mean((val_pred - val_df["target"].values[self.seq_len - 1 :]) ** 2))
+                val_loss = float(
+                    np.mean((val_pred - val_df["target"].values[self.seq_len - 1 :]) ** 2)
+                )
                 if val_loss < best_loss:
                     best_loss = val_loss
                     wait = 0
@@ -150,18 +154,23 @@ class LSTMForecast(ForecastModel):
 
     def save(self, path: str | Path) -> None:
         import joblib
-        joblib.dump({
-            "state_dict": self.model_.state_dict() if self.model_ else None,
-            "feature_names": self.feature_names_,
-            "seq_len": self.seq_len,
-            "hidden_size": self.hidden_size,
-            "num_layers": self.num_layers,
-            "dropout": self.dropout,
-        }, path)
+
+        joblib.dump(
+            {
+                "state_dict": self.model_.state_dict() if self.model_ else None,
+                "feature_names": self.feature_names_,
+                "seq_len": self.seq_len,
+                "hidden_size": self.hidden_size,
+                "num_layers": self.num_layers,
+                "dropout": self.dropout,
+            },
+            path,
+        )
 
     @classmethod
     def load(cls, path: str | Path) -> "LSTMForecast":
         import joblib
+
         data = joblib.load(path)
         m = cls(
             sequence_length=data["seq_len"],

@@ -4,6 +4,18 @@
 
 ---
 
+## Energy Market Context
+
+Wholesale electricity is traded in **day-ahead** and **real-time** markets. Day-ahead prices (LMP = Locational Marginal Price) are set the day before delivery; they reflect expected supply/demand, congestion, and generation mix. **CAISO** (California) and **PJM** (Mid-Atlantic) are two of the largest US markets. Accurate forecasts help:
+
+- **Utilities & retailers:** Hedge procurement, manage imbalance risk
+- **Traders:** Identify arbitrage, optimize bidding
+- **Large consumers:** Shift load to low-price hours, reduce costs
+
+Prices spike during heat waves, cold snaps, and renewable ramps—making forecasting both challenging and valuable.
+
+---
+
 ## Why This Project
 
 Electricity prices are highly volatile and driven by demand, weather, and generation mix. Accurate day-ahead forecasts enable utilities, traders, and large consumers to optimize procurement and hedging. This project demonstrates a **full ML lifecycle** from raw market data to deployed predictions—the kind of system you’d see in a trading or energy analytics team.
@@ -17,7 +29,7 @@ Electricity prices are highly volatile and driven by demand, weather, and genera
 | **Data Ingestion** | CAISO (no key), PJM (API key), Open-Meteo (weather), retry/backoff |
 | **Feature Engineering** | Lags (1, 2, 24, 48, 168h), rolling stats/quantiles, calendar, holiday/weekend flags, volatility proxies—**no future leakage** |
 | **Models** | Naive baselines, XGBoost, SARIMAX, PyTorch LSTM, quantile regression for prediction intervals |
-| **Evaluation** | MAE, RMSE, MAPE, SMAPE, pinball loss; rolling-origin backtest; leakage unit tests |
+| **Evaluation** | MAE, RMSE, MAPE, SMAPE, pinball loss; rolling-origin backtest; strategy PnL/Sharpe; leakage unit tests |
 | **MLOps** | MLflow tracking, model registry, drift detection (PSI, KS), monitoring summary |
 | **Serving** | FastAPI `/predict` with Pydantic validation, Streamlit dashboard, Docker |
 | **Config** | YAML configs, `.env` for secrets, no hardcoded values |
@@ -115,9 +127,10 @@ electricity-price-forecast/
 
 ## Key Findings & Design Decisions
 
-### 1. **No Future Leakage**
-- All lags, rolling stats, and price-change features use `shift(1)` so only past information is used.
-- Unit tests (`test_features_leakage.py`) assert that injected future values never appear in features.
+### 1. **No Leakage**
+- **Target leakage:** `lmp` (current price) is excluded from model features; only lagged prices, rolling stats, calendar, and weather are used.
+- **Future leakage:** All lags and rolling stats use `shift(1)` so only past information is used.
+- Unit tests (`test_features_leakage.py`) assert no future info in features.
 
 ### 2. **Time-Series Splits**
 - Train/val/test by date boundaries (no shuffling).
@@ -244,16 +257,18 @@ Volumes: `data/`, `mlruns/` for persistence.
 
 ## Latest Results (Real CAISO Data)
 
-Backtest on real CAISO day-ahead LMP (Feb 2026, 95 hourly observations), Naive Last model:
+XGBoost rolling backtest on real CAISO day-ahead LMP (Sep 2025–Feb 2026, 5 folds). **No target leakage** (lmp excluded from features).
 
-| Metric | Value |
-|--------|-------|
-| MAE | 25.57 $/MWh |
-| RMSE | 28.75 $/MWh |
-| MAPE | 99.49% |
-| SMAPE | 196.68% |
+| Forecast | Value | Strategy | Value |
+|----------|-------|----------|-------|
+| MAE | 2.99 $/MWh | PnL (mean/fold) | 1,335 $ |
+| RMSE | 4.52 $/MWh | Sharpe | 9.37 |
+| SMAPE | 12.2% | Win Rate | 71.5% |
+| Directional Accuracy | 70.0% | Max Drawdown | 18.6% |
 
-These metrics reflect a weak baseline on real market data. XGBoost or LSTM (after `brew install libomp`) should improve performance.
+**Baseline:** lag_1 (naive last) achieves MAE 2.76 (better than XGB). XGB beats lag_24 (5.53) and lag_168 (8.75). See [results_analysis.md](docs/results_analysis.md) for full comparison and limitations.
+
+![Streamlit Dashboard](docs/streamlit_dashboard.png)
 
 ---
 

@@ -13,7 +13,7 @@ fetch → features → train → backtest → run_api / run_app
 1. **Fetch**: CAISO LMP (no key) or PJM LMP (API key) + Open-Meteo weather → `data/raw/*.parquet`
 2. **Features**: Clean, transform, build features → `data/processed/modeling_table.parquet`
 3. **Train**: Fit model, log to MLflow → `mlruns/`
-4. **Backtest**: Rolling-origin evaluation → `docs/backtest_report.md`
+4. **Backtest**: Rolling-origin evaluation + baseline comparison (lag_1, lag_24, lag_168) → `docs/backtest_report.md`
 5. **Serve**: FastAPI + Streamlit
 
 ## Project Structure
@@ -43,7 +43,7 @@ electricity-price-forecast/
 | **ingestion** | CAISO (gridstatus, no key), PJM (API key), Open-Meteo (weather) |
 | **transforms** | Clean (UTC, dedupe, outliers), features (lags, rolling, calendar), splits |
 | **models** | Naive, SeasonalNaive, XGB, SARIMAX, LSTM, QuantileXGB |
-| **evaluation** | MAE, RMSE, MAPE, SMAPE, pinball; rolling backtest |
+| **evaluation** | MAE, RMSE, SMAPE, directional accuracy; rolling backtest; strategy (PnL, Sharpe, drawdown) |
 | **mlops** | MLflow tracking, registry, drift (PSI/KS) |
 | **serving** | FastAPI /predict, Streamlit dashboard |
 
